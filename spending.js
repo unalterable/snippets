@@ -1,15 +1,19 @@
 const _ = require('lodash');
 const moment = require('moment');
+const { importCsv } = require('./csv-import-export')
 
 const getNewId = (i => () => i++)(0);
+
+const parseSterlingToFloat = (sterling) => parseInt(sterling.replace('£','').replace('.', ''));
+
 
 const newTransactionObj = (transaction, modifiers) => {
   const id = getNewId();
   const methods = {
     id: () => id,
-    transaction: () => tansaction,
-    date: () => modifiers.date || transaction.date,
-    amount: () => transaction.amount,
+    transaction: () => transaction,
+    date: () => moment(modifiers.date || transaction.date, 'DD-MM-YYYY').toDate(),
+    amount: () => parseSterlingToFloat(transaction.amount),
     description: () => transaction.description,
     toString: () => ({ id, transaction }),
     addModifier: newModifiers => newTransactionObj(transaction, Object.assign({}, modifiers, newModifiers)),
@@ -17,19 +21,26 @@ const newTransactionObj = (transaction, modifiers) => {
   return methods;
 }
 
-const transactions = [
-  { date: new Date('2016-06-02'), description: 'Description string', amount: -34.20 },
-  { date: new Date('2016-06-01'), description: 'Description string', amount: -10 },
-  { date: new Date('2016-06-01'), description: 'Description string', amount: -5 },
-  { date: new Date('2016-06-01'), description: 'Description string', amount: -2 },
-  { date: new Date('2016-06-03'), description: 'Description string', amount: 200.34 },
-  { date: new Date('2016-06-09'), description: 'rent', amount: 750 },
-  { date: new Date('2016-07-02'), description: 'Description string', amount: -18 },
-  { date: new Date('2016-07-08'), description: 'Description string', amount: -37 },
-  { date: new Date('2016-06-30'), description: 'Description string', amount: -52 },
-  { date: new Date('2016-06-02'), description: 'This is rent', amount: -2.86 },
-].map(newTransactionObj);
+const csv = importCsv('./data/statement.csv', (headers) => {
+  const headerMap = { Date: 'date', Description: 'description', Value: 'amount' }
+  return headers.map(header => headerMap[header] || header);
+})
 
+const transactions = csv.map(newTransactionObj)
+
+/* const transactions = [
+ *   { date: '02/06/2016', description: 'Description string', amount: "-£34.20" },
+ *   { date: '01/06/2016', description: 'Description string', amount: "-£10" },
+ *   { date: '01/06/2016', description: 'Description string', amount: "-£5" },
+ *   { date: '01/06/2016', description: 'Description string', amount: "-£2" },
+ *   { date: '03/06/2016', description: 'Description string', amount: "£200.34" },
+ *   { date: '09/06/2016', description: 'rent', amount: "£750" },
+ *   { date: '02/07/2016', description: 'Description string', amount: "-£18" },
+ *   { date: '08/07/2016', description: 'Description string', amount: "-£37" },
+ *   { date: '30/06/2016', description: 'Description string', amount: "-£52" },
+ *   { date: '02/06/2016', description: 'This is rent', amount: "-£2.86" },
+ * ].map(newTransactionObj);
+ * */
 const minDate = () => _.minBy(transactions, t => t.date()).date();
 const maxDate = () => _.maxBy(transactions, t => t.date()).date();
 
@@ -59,7 +70,7 @@ const keyByDateAndCategory = (transactions) => {
   return transactions.reduce((memo, t) =>
     _.update(memo, [t.date(), category(t)], val => (val || []).concat(t)),
     {}
-) };
+  ) };
 
 const total = (transactions) => {
   return (transactions || []).reduce((sum, t) => sum + t.amount(), 0)
@@ -93,7 +104,7 @@ const createMonthlyTotals = (totalsByDate) => {
   return monthlyTotals;
 }
 
-const createBalances = (totalsByDate, monthlyTotals) => {
+const addBalances = (totalsByDate, monthlyTotals) => {
   let spendingSoFar = 0;
   let balance = 0;
   return totalsByDate.map(dayTotals => {
@@ -104,11 +115,13 @@ const createBalances = (totalsByDate, monthlyTotals) => {
   })
 }
 
+
 const totalsByDate = createTotalsByDate(transactions)
 
 const monthlyTotals = createMonthlyTotals(totalsByDate)
 
-const balances = createBalances(totalsByDate, monthlyTotals);
+const balances = addBalances(totalsByDate, monthlyTotals);
 console.log(balances.map(( date, i ) => Object.assign({}, totalsByDate[i], balances[i])))
 
 console.log(_.sumBy(transactions, t => t.amount()))
+
