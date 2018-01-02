@@ -43,11 +43,11 @@ const createOrderedDateRange = (firstDay, lastDay) => {
   return range;
 }
 
-const isRent = transaction => {
+const isRent = (transaction) => {
   return transaction.description().includes('rent')
 }
 
-const category = transaction => {
+const category = (transaction) => {
   if (isRent(transaction))
     return 'rent';
   if (transaction.amount() > 0)
@@ -55,12 +55,15 @@ const category = transaction => {
   return 'spending';
 }
 
-const keyByDateAndCategory = transactions => transactions.reduce((memo, t) =>
-  _.update(memo, [t.date(), category(t)], val => (val || []).concat(t)),
-  {}
-);
+const keyByDateAndCategory = (transactions) => {
+  return transactions.reduce((memo, t) =>
+    _.update(memo, [t.date(), category(t)], val => (val || []).concat(t)),
+    {}
+) };
 
-const total = transactions => (transactions || []).reduce((sum, t) => sum + t.amount(), 0);
+const total = (transactions) => {
+  return (transactions || []).reduce((sum, t) => sum + t.amount(), 0)
+};
 
 
 const createTotalsByDate = (transactions) => {
