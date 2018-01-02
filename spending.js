@@ -23,15 +23,17 @@ const transactions = [
   { date: new Date('2016-06-01'), description: 'Description string', amount: -5 },
   { date: new Date('2016-06-01'), description: 'Description string', amount: -2 },
   { date: new Date('2016-06-03'), description: 'Description string', amount: 200.34 },
-  { date: new Date('2016-06-09'), description: 'cash', amount: 750 },
-  { date: new Date('2016-07-01'), description: 'Description string', amount: -18 },
+  { date: new Date('2016-06-09'), description: 'rent', amount: 750 },
+  { date: new Date('2016-07-02'), description: 'Description string', amount: -18 },
+  { date: new Date('2016-07-08'), description: 'Description string', amount: -37 },
+  { date: new Date('2016-06-30'), description: 'Description string', amount: -52 },
   { date: new Date('2016-06-02'), description: 'This is rent', amount: -2.86 },
 ].map(newTransactionObj);
 
 const minDate = () => _.minBy(transactions, t => t.date()).date();
 const maxDate = () => _.maxBy(transactions, t => t.date()).date();
 
-const dateRange = (firstDay, lastDay) => {
+const createOrderedDateRange = (firstDay, lastDay) => {
   const start = moment(firstDay)
   const finish = moment(lastDay)
   const range = [];
@@ -41,13 +43,12 @@ const dateRange = (firstDay, lastDay) => {
   return range;
 }
 
-const rentMatchers = [
-  t => t.description().includes('rent'),
-  t => t.amount() === -750 && t.description().includes('cash'),
-];
+const isRent = transaction => {
+  return transaction.description().includes('rent')
+}
 
 const category = transaction => {
-  if (_.some(rentMatchers, matcher => matcher(transaction)))
+  if (isRent(transaction))
     return 'rent';
   if (transaction.amount() > 0)
     return 'income';
@@ -57,21 +58,54 @@ const category = transaction => {
 const keyByDateAndCategory = transactions => transactions.reduce((memo, t) =>
   _.update(memo, [t.date(), category(t)], val => (val || []).concat(t)),
   {}
-)
+);
+
 const total = transactions => (transactions || []).reduce((sum, t) => sum + t.amount(), 0);
 
-console.log(transactions.map(t => t.toString()))
-console.log()
 
-const transactionsByDateAndCategory = keyByDateAndCategory(transactions)
-console.log(transactionsByDateAndCategory)
-console.log()
+const createTotalsByDate = (transactions) => {
+  const transactionsByDateAndCategory = keyByDateAndCategory(transactions);
+  const dateRange = createOrderedDateRange(minDate(transactions), maxDate(transactions));
+  return dateRange.map(date => {
+    const transactionsOnThisDate = transactionsByDateAndCategory[date] || {};
+    const spending = total(transactionsOnThisDate.spending);
+    const rent = total(transactionsOnThisDate.rent);
+    const income = total(transactionsOnThisDate.income);
+    return {
+      date, spending, rent, income, transactions: transactionsOnThisDate,
+    };
+  });
+};
 
-const thisDateRange = dateRange(minDate(transactions), maxDate(transactions));
-console.log(thisDateRange.map(date => ({
-  date: moment(date).format('DD-MM-YYYY'),
-  spending: total(( transactionsByDateAndCategory[date] || {} ).spending),
-  rent: total(( transactionsByDateAndCategory[date] || {} ).rent),
-  income: total(( transactionsByDateAndCategory[date] || {} ).income),
-  transactions: transactionsByDateAndCategory[date] || {},
-})))
+const createMonthlyTotals = (totalsByDate) => {
+  const monthlyTotals = {};
+  totalsByDate.forEach(dayTotals => {
+    const month = moment(dayTotals.date).format('MM-YYYY')
+    if(!monthlyTotals[month])
+      monthlyTotals[month] = {spending: 0, rent: 0, income: 0 }
+    monthlyTotals[month].spending += dayTotals.spending;
+    monthlyTotals[month].rent += dayTotals.rent;
+    monthlyTotals[month].income += dayTotals.income;
+  })
+  return monthlyTotals;
+}
+
+const createBalances = (totalsByDate, monthlyTotals) => {
+  let spendingSoFar = 0;
+  let balance = 0;
+  return totalsByDate.map(dayTotals => {
+    const dayOfMonth = moment(dayTotals.date).date();
+    spendingSoFar = (dayOfMonth !== 1 ? spendingSoFar : 0) + dayTotals.spending;
+    balance += (dayTotals.spending + dayTotals.income + dayTotals.rent)
+    return { date: dayTotals.date, spendingSoFar, balance }
+  })
+}
+
+const totalsByDate = createTotalsByDate(transactions)
+
+const monthlyTotals = createMonthlyTotals(totalsByDate)
+
+const balances = createBalances(totalsByDate, monthlyTotals);
+console.log(balances.map(( date, i ) => Object.assign({}, totalsByDate[i], balances[i])))
+
+console.log(_.sumBy(transactions, t => t.amount()))
