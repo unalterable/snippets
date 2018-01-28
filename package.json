@@ -5,6 +5,7 @@
   "main": "memoization.js",
   "scripts": {
     "build-scss": "node-sass scss/first.scss build/main.css",
+    "build-scss:watch": "node-sass -w scss/first.scss build/main.css",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
