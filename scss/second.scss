@@ -1,0 +1,7 @@
+.thing2 {
+  @extend .thing;
+  background: darken($primaryColor, 2%);
+  &:hover {
+    background: darken($primaryColor, 5%);
+  }
+}

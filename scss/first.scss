@@ -1,18 +1,20 @@
-$primaryColor: #eeffcc;
+$primaryColor: #fff;
+
 
 body {
   background: $primaryColor;
 
-  .thing {
-    width: 95%;
-    height: 30px;
-    margin: 0 auto 10px;
-    background: darken($primaryColor, 20%);
+}
 
-    &:hover {
-      background: darken($primaryColor, 80%);
-    }
+.thing {
+  width: 95%;
+  height: 30px;
+  margin: 0 auto 10px;
+  background: darken($primaryColor, 20%);
 
+  &:hover {
+    background: darken($primaryColor, 80%);
   }
 }
+@import "second";
 
