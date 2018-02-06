@@ -4,17 +4,21 @@
   "description": "",
   "main": "memoization.js",
   "scripts": {
+    "build-assets": "webpack --config ./webpack.config.js",
     "build-scss": "node-sass scss/first.scss build/main.css",
-    "build-scss:watch": "node-sass -w scss/first.scss build/main.css",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build-scss:watch": "node-sass -w scss/first.scss build/main.css"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "babel-core": "^6.26.0",
+    "babel-loader": "^7.1.2",
+    "babel-preset-es2015": "^6.24.1",
     "csv-parse": "^2.0.0",
     "immutable": "^3.8.2",
     "lodash": "^4.17.4",
     "moment": "^2.19.4",
-    "node-sass": "^4.7.2"
+    "node-sass": "^4.7.2",
+    "webpack": "^3.10.0"
   }
 }
